@@ -1,0 +1,22 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "bun src/index.js",
+    "dev": "bun src/index.js",
+    "test": "bun test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "@getlarge/fastify-mcp": "^1.2.2-getlarge.1",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "fastify": "^5.8.4",
+    "nanoid": "^5.1.7",
+    "pino": "^10.3.1"
+  }
+}

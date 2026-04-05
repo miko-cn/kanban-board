@@ -1,0 +1,666 @@
+/* Kanban Board - Industrial Theme */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+.app-container {
+  min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+/* 头部 */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background-color: var(--bg-secondary);
+  border-bottom: 2px solid var(--accent);
+  box-shadow: var(--shadow-md);
+}
+
+.app-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.openclaw-logo {
+  vertical-align: middle;
+}
+
+/* 主题切换 */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* 主内容区 */
+.kanban-board {
+  padding: 24px;
+  min-height: calc(100vh - 70px);
+}
+
+/* 列容器 */
+.columns-container {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+/* 单个列 */
+.column {
+  flex: 1 1 300px;
+  min-width: 280px;
+  max-width: 360px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.column:hover {
+  border-color: var(--border-light);
+  box-shadow: var(--shadow-md);
+}
+
+.column.drop-target {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+/* 列头部 */
+.column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background-color: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+}
+
+.column-header h3 {
+  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* 任务计数 */
+.task-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 20px;
+  padding: 0 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  background-color: var(--accent-dim);
+  color: var(--accent);
+  border-radius: 2px;
+}
+
+/* 列内容区 */
+.column-tasks {
+  padding: 12px;
+  min-height: 120px;
+  max-height: calc(100vh - 250px);
+  overflow-y: auto;
+}
+
+/* 任务卡片 */
+.task-card {
+  position: relative;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  margin-bottom: 10px;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.task-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: var(--border-light);
+  border-radius: 2px 0 0 2px;
+  transition: background-color 0.15s;
+}
+
+.task-card:last-child {
+  margin-bottom: 0;
+}
+
+.task-card:hover {
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.task-card:hover::before {
+  background-color: var(--accent);
+}
+
+.task-card.dragging {
+  opacity: 0.7;
+  box-shadow: var(--shadow-lg);
+  transform: rotate(1deg);
+  cursor: grabbing;
+}
+
+.task-card.dragging::before {
+  background-color: var(--accent);
+}
+
+/* 任务卡片内容 */
+.task-card-content {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px 12px 12px 16px;
+  gap: 10px;
+}
+
+/* 任务内容 */
+.task-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-title {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.task-description {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+/* 任务操作按钮 */
+.task-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.task-card:hover .task-actions {
+  opacity: 1;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 2px;
+  background-color: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.action-btn:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.edit-btn:hover {
+  color: var(--accent);
+}
+
+.delete-btn:hover {
+  color: var(--danger);
+}
+
+/* 无任务提示 */
+.no-tasks {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 24px 0;
+  font-style: italic;
+}
+
+/* 列底部 - 添加任务按钮 */
+.column-footer {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.add-task-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: 2px;
+  background-color: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-family: 'JetBrains Mono', monospace;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.add-task-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background-color: var(--accent-dim);
+}
+
+/* 弹窗 */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal {
+  width: 100%;
+  max-width: 420px;
+  padding: 24px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal h2 {
+  margin: 0 0 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* 表单 */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: 'Noto Sans SC', sans-serif;
+  transition: border-color 0.15s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* 按钮 */
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btn-cancel,
+.btn-submit {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-cancel {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.btn-cancel:hover {
+  background-color: var(--border);
+  color: var(--text-primary);
+}
+
+.btn-submit {
+  background-color: var(--accent);
+  color: white;
+}
+
+.btn-submit:hover {
+  background-color: var(--accent-hover);
+}
+
+.btn-submit:active {
+  transform: scale(0.98);
+}
+
+/* 加载/空状态 */
+.loading,
+.error,
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.error {
+  color: var(--danger);
+}
+
+/* 滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-light);
+}
+
+/* 响应式 */
+
+/* 大屏幕：限制最大宽度并居中 */
+@media (min-width: 1440px) {
+  .kanban-board {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 32px 48px;
+  }
+  
+  .columns-container {
+    gap: 24px;
+  }
+  
+  .column {
+    flex: 1 1 340px;
+    max-width: 380px;
+  }
+  
+  .column-tasks {
+    max-height: calc(100vh - 280px);
+  }
+}
+
+/* 2K 屏幕 */
+@media (min-width: 1920px) {
+  .kanban-board {
+    max-width: 1800px;
+    padding: 40px 64px;
+  }
+  
+  .columns-container {
+    gap: 28px;
+  }
+  
+  .column {
+    flex: 1 1 360px;
+    max-width: 400px;
+  }
+  
+  .app-title {
+    font-size: 24px;
+  }
+  
+  .openclaw-logo {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* 4K 屏幕 */
+@media (min-width: 2560px) {
+  .kanban-board {
+    max-width: 2400px;
+    padding: 48px 80px;
+  }
+  
+  .columns-container {
+    gap: 32px;
+    justify-content: center;
+  }
+  
+  .column {
+    flex: 0 1 420px;
+    max-width: 440px;
+  }
+  
+  .app-title {
+    font-size: 28px;
+  }
+  
+  .openclaw-logo {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .app-header {
+    padding: 20px 48px;
+  }
+}
+
+/* 笔记本端 */
+@media (max-width: 1200px) {
+  .kanban-board {
+    padding: 20px;
+  }
+  
+  .columns-container {
+    gap: 16px;
+  }
+  
+  .column {
+    flex: 1 1 280px;
+    min-width: 260px;
+    max-width: 320px;
+  }
+}
+
+/* 平板端 */
+@media (max-width: 1024px) {
+  .column {
+    flex: 1 1 45%;
+    min-width: 240px;
+  }
+  
+  .column-tasks {
+    max-height: calc(100vh - 300px);
+  }
+  
+  .app-header {
+    padding: 14px 20px;
+  }
+  
+  .app-title {
+    font-size: 18px;
+  }
+}
+
+/* 手机端 - 垂直堆叠 */
+@media (max-width: 768px) {
+  .app-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+  
+  .app-title {
+    font-size: 16px;
+  }
+  
+  .openclaw-logo {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .header-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  
+  .kanban-board {
+    padding: 16px;
+  }
+  
+  .columns-container {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .column {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: 100%;
+    min-width: unset;
+  }
+  
+  .column-tasks {
+    max-height: 400px;
+    min-height: 100px;
+  }
+  
+  .column-header h3 {
+    font-size: 12px;
+  }
+  
+  .modal {
+    margin: 16px;
+    max-width: calc(100% - 32px);
+  }
+}
+/* 归档按钮 */
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.archive-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.archive-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}

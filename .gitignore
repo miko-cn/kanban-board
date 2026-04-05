@@ -1,0 +1,40 @@
+# 依赖
+node_modules/
+.pnp
+.pnp.js
+
+# 测试
+coverage/
+
+# 生产构建
+dist/
+build/
+
+# 后端
+backend/data/
+backend/*.log
+
+# 前端
+frontend/.vite/
+frontend/dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 环境
+.env
+.env.local
+.env.*.local
+
+# 日志
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
