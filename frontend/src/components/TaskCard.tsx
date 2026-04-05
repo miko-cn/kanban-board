@@ -40,7 +40,7 @@ export function TaskCard({ task, onEdit, onDelete }: TaskCardProps) {
       <div className="task-card-content">
         {/* Task Content */}
         <div className="task-content">
-          <h4 className="task-title">{task.title}</h4>
+          <h4 className="task-title">{task.title} <span style={{opacity:0.5, fontSize:10}}>#{task.order}</span></h4>
           {task.description && (
             <p className="task-description">{task.description}</p>
           )}

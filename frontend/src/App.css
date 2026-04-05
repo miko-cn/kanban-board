@@ -19,10 +19,20 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  padding: 16px 0;
   background-color: var(--bg-secondary);
   border-bottom: 2px solid var(--accent);
   box-shadow: var(--shadow-md);
+}
+
+.header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1248px;
+  margin: 0 auto;
+  padding: 0 24px;
 }
 
 .app-title {
@@ -61,6 +71,26 @@
   color: var(--accent);
 }
 
+/* 退出登录按钮 */
+.logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
 /* 主内容区 */
 .kanban-board {
   padding: 24px;
@@ -69,17 +99,28 @@
 
 /* 列容器 */
 .columns-container {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+@media (max-width: 900px) {
+  .columns-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .columns-container {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* 单个列 */
 .column {
-  flex: 1 1 300px;
-  min-width: 280px;
-  max-width: 360px;
+  min-width: 0;
   background-color: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -103,7 +144,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 14px 16px;
-  background-color: var(--bg-tertiary);
+  background-color: var(--column-header-bg);
   border-bottom: 1px solid var(--border);
 }
 
@@ -194,8 +235,8 @@
 .task-card-content {
   display: flex;
   align-items: flex-start;
-  padding: 12px 12px 12px 16px;
-  gap: 10px;
+  padding: 10px 10px 10px 14px;
+  gap: 8px;
 }
 
 /* 任务内容 */
@@ -205,7 +246,7 @@
 }
 
 .task-title {
-  margin: 0 0 6px 0;
+  margin: 0;
   font-size: 14px;
   font-weight: 500;
   color: var(--text-primary);
@@ -224,7 +265,7 @@
 /* 任务操作按钮 */
 .task-actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 4px;
   opacity: 0;
   transition: opacity 0.15s;
@@ -564,7 +605,6 @@
   .column {
     flex: 1 1 280px;
     min-width: 260px;
-    max-width: 320px;
   }
 }
 
@@ -663,4 +703,94 @@
 .archive-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* 登录页样式 */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-primary);
+}
+
+.login-card {
+  background-color: var(--bg-secondary);
+  padding: 32px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  width: 360px;
+  border: 1px solid var(--border);
+}
+
+.login-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 20px;
+  color: var(--text-primary);
+}
+
+.login-card .form-group {
+  margin-bottom: 16px;
+}
+
+.login-card .form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+}
+
+.login-card .form-input {
+  width: 100%;
+  padding: 10px 14px;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.login-card .form-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.login-card .form-input::placeholder {
+  color: var(--text-muted);
+}
+
+.login-error {
+  color: var(--danger);
+  font-size: 14px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background-color: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.login-btn:hover {
+  background-color: var(--accent-hover);
+}
+
+.login-logo {
+  display: block;
+  margin: 0 auto 16px;
+  width: 64px;
+  height: 64px;
 }

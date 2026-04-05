@@ -1,5 +1,6 @@
 import fastify from 'fastify';
 import cors from '@fastify/cors';
+import fastifyJwt from '@fastify/jwt';
 import { nanoid } from 'nanoid';
 import path from 'path';
 import fs from 'fs';
@@ -10,12 +11,30 @@ const __dirname = path.dirname(__filename);
 
 const app = fastify({ logger: false });
 
+// 配置 JWT 密钥（生产环境建议用环境变量）
+const JWT_SECRET = process.env.JWT_SECRET || 'kanban-secret-key-2026';
+const LOGIN_PASSWORD = process.env.LOGIN_PASSWORD || 'kanban123';
+
 // 配置 CORS
 app.register(cors, {
   origin: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 });
+
+// 注册 JWT 插件
+app.register(fastifyJwt, {
+  secret: JWT_SECRET,
+});
+
+// 验证 token 装饰器
+const authenticate = async (request, reply) => {
+  try {
+    await request.jwtVerify();
+  } catch (err) {
+    reply.status(401).send({ message: 'Unauthorized' });
+  }
+};
 
 // 数据目录
 const DATA_DIR = path.join(__dirname, '..', 'data');
@@ -38,6 +57,29 @@ function writeJson(file, data) {
 // ========== REST API ==========
 
 app.get('/api/health', async () => ({ status: 'ok' }));
+
+// 登录接口（无需鉴权）
+app.post('/api/login', async (request) => {
+  const { password } = request.body || {};
+  if (password !== LOGIN_PASSWORD) {
+    throw { statusCode: 401, message: 'Invalid password' };
+  }
+  const token = app.jwt.sign({ timestamp: Date.now() });
+  return { token };
+});
+
+// 需要鉴权的接口
+app.addHook('preHandler', async (request, reply) => {
+  // 排除登录和 health 接口
+  if (request.url === '/api/login' || request.url === '/api/health') {
+    return;
+  }
+  try {
+    await request.jwtVerify();
+  } catch (err) {
+    reply.status(401).send({ message: 'Unauthorized' });
+  }
+});
 
 app.get('/api/columns', async () => readJson('columns.json'));
 

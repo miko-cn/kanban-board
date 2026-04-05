@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { isAuthenticated, removeToken } from './api/client';
 import './App.css';
 import {
   DndContext,
@@ -25,8 +27,19 @@ import {
 } from './api/client';
 import { Column as KanbanColumn } from './components/Column';
 import { TaskCard } from './components/TaskCard';
+import LoginPage from './pages/Login';
 
-function App() {
+// 私有路由包装器
+function PrivateRoute({ children }: { children: React.ReactNode }) {
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+}
+
+function KanbanBoard() {
+  const navigate = useNavigate();
+  const dragStartColumnRef = useRef<string | null>(null); // 记录拖拽开始时的列 ID
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('kanban-theme');
     return (saved as 'light' | 'dark') || 'light';
@@ -67,6 +80,11 @@ function App() {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
   };
 
+  const handleLogout = () => {
+    removeToken();
+    navigate('/login');
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -93,14 +111,17 @@ function App() {
   };
 
   // Drag handlers
+  // 拖拽开始
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     const draggedTask = tasks.find(t => t.id === active.id);
     if (draggedTask) {
       setActiveTask(draggedTask);
+      dragStartColumnRef.current = draggedTask.columnId; // 保存原始列 ID
     }
   };
 
+  // 拖拽中 - 只更新列ID用于预览，不处理排序
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
     if (!over) return;
@@ -111,108 +132,158 @@ function App() {
     const activeTask = tasks.find(t => t.id === activeId);
     if (!activeTask) return;
 
-    // Check if over is a column
+    // 确定目标列
     const isOverColumn = columns.some(c => c.id === overId);
-    
-    // Find the column the task is over
     let overColumnId: string | null = null;
     
     if (isOverColumn) {
       overColumnId = overId;
     } else {
       const overTask = tasks.find(t => t.id === overId);
-      if (overTask) {
-        overColumnId = overTask.columnId;
-      }
+      if (overTask) overColumnId = overTask.columnId;
     }
 
-    if (overColumnId && activeTask.columnId !== overColumnId) {
-      // Moving between columns
-      setTasks(prev => {
-        const updatedTasks = prev.map(t => 
-          t.id === activeId ? { ...t, columnId: overColumnId! } : t
-        );
-        return updatedTasks;
-      });
+    if (!overColumnId) return;
+
+    // 只在列变化时更新预览
+    if (activeTask.columnId !== overColumnId) {
+      setTasks(prev => prev.map(t => 
+        t.id === activeId ? { ...t, columnId: overColumnId! } : t
+      ));
     }
   };
 
+  // 拖拽结束 - 统一在这里处理所有状态更新
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-    
     setActiveTask(null);
-
+    
     if (!over) return;
 
     const activeId = active.id as string;
     const overId = over.id as string;
 
+    // 找到 active task
     const activeTask = tasks.find(t => t.id === activeId);
     if (!activeTask) return;
 
-    // Check if dropped on a column
+    // 确定目标列 ID
     const isOverColumn = columns.some(c => c.id === overId);
-    
     let targetColumnId: string;
-    let targetIndex: number;
-
+    
     if (isOverColumn) {
-      // Dropped on column - add to end
       targetColumnId = overId;
-      const columnTasks = tasks.filter(t => t.columnId === targetColumnId && t.id !== activeId);
-      targetIndex = columnTasks.length;
     } else {
-      // Dropped on another task
       const overTask = tasks.find(t => t.id === overId);
       if (!overTask) return;
-      
       targetColumnId = overTask.columnId;
-      const columnTasks = tasks
+    }
+
+    // 不管位置是否相同，只要列不同就更新
+    // 用 ref 判断是否跨列（而不是当前 state）
+    const originalColumnId = dragStartColumnRef.current;
+    // console.log originalColumnId:', originalColumnId, 'targetColumnId:', targetColumnId);
+    if (originalColumnId !== targetColumnId) {
+      // console.log Move to column:', targetColumnId);
+      
+      // 获取目标列的任务
+      let targetColumnTasks = tasks
         .filter(t => t.columnId === targetColumnId)
         .sort((a, b) => a.order - b.order);
       
-      targetIndex = columnTasks.findIndex(t => t.id === overId);
+      // 找到插入位置
+      let insertIndex = targetColumnTasks.length;
+      const isOverColumn = columns.some(c => c.id === overId);
+      if (!isOverColumn) {
+        const overIdx = targetColumnTasks.findIndex(t => t.id === overId);
+        if (overIdx !== -1) insertIndex = overIdx;
+      }
+      
+      // console.log Insert at index:', insertIndex);
+      
+      // 移除被拖拽的任务（如果已经在目标列）
+      targetColumnTasks = targetColumnTasks.filter(t => t.id !== activeId);
+      
+      // 插入到新位置
+      const activeTaskData = { ...activeTask, columnId: targetColumnId };
+      targetColumnTasks.splice(insertIndex, 0, activeTaskData);
+      
+      // 重新分配 order：0, 1, 2...
+      const updates = targetColumnTasks.map((t, idx) => ({
+        id: t.id,
+        order: idx
+      }));
+      
+      // console.log Updates:', updates);
+      
+      // 前端更新
+      setTasks(prev => {
+        const updated = [...prev];
+        updates.forEach(u => {
+          const idx = updated.findIndex(t => t.id === u.id);
+          if (idx !== -1) {
+            updated[idx] = { ...updated[idx], order: u.order, columnId: targetColumnId };
+          }
+        });
+        return updated;
+      });
+
+      // 后端持久化
+      try {
+        await Promise.all(updates.map(u => 
+          updateTask(u.id, { columnId: targetColumnId, order: u.order })
+        ));
+        // console.log API success');
+      } catch (err) {
+        console.error('[DragEnd] API failed:', err);
+      }
+      return;
     }
 
-    // Calculate new order
+    // 同列排序 - 检查位置是否变化
     const columnTasks = tasks
-      .filter(t => t.columnId === targetColumnId && t.id !== activeId)
+      .filter(t => t.columnId === targetColumnId)
       .sort((a, b) => a.order - b.order);
     
-    let newOrder: number;
-    if (targetIndex === 0) {
-      newOrder = (columnTasks[0]?.order ?? 0) - 1;
-    } else if (targetIndex >= columnTasks.length) {
-      newOrder = (columnTasks[columnTasks.length - 1]?.order ?? 0) + 1;
-    } else {
-      const prevOrder = columnTasks[targetIndex - 1]?.order ?? 0;
-      const nextOrder = columnTasks[targetIndex]?.order ?? prevOrder + 1;
-      newOrder = Math.floor((prevOrder + nextOrder) / 2);
+    const activeIndex = columnTasks.findIndex(t => t.id === activeId);
+    const targetIndex = columnTasks.findIndex(t => t.id === overId);
+
+    if (activeIndex === targetIndex) {
+      // console.log Same position, skip');
+      return;
     }
 
-    // Optimistic update
-    setTasks(prev => prev.map(t => 
-      t.id === activeId ? { ...t, columnId: targetColumnId, order: newOrder } : t
-    ));
+    // 重新排序
+    const newColumnTasks = [...columnTasks];
+    newColumnTasks.splice(activeIndex, 1);
+    newColumnTasks.splice(targetIndex, 0, activeTask);
 
-    // Persist to backend
-    try {
-      await updateTask(activeId, {
-        columnId: targetColumnId,
-        order: newOrder,
+    // 更新 order
+    const updates = newColumnTasks.map((t, idx) => ({
+      id: t.id,
+      order: idx
+    }));
+
+    // 前端更新
+    setTasks(prev => {
+      const updated = [...prev];
+      updates.forEach(u => {
+        const idx = updated.findIndex(t => t.id === u.id);
+        if (idx !== -1) {
+          updated[idx] = { ...updated[idx], order: u.order };
+        }
       });
+      return updated;
+    });
+
+    // 后端持久化
+    try {
+      await Promise.all(updates.map(u => 
+        updateTask(u.id, { order: u.order })
+      ));
+      // console.log Reorder API success');
     } catch (err) {
-      console.error('Failed to update task:', err);
-      // Revert on error
-      const fetchData = async () => {
-        const [columnsData, tasksData] = await Promise.all([
-          getColumns(),
-          getTasks()
-        ]);
-        setColumns(columnsData);
-        setTasks(tasksData);
-      };
-      fetchData();
+      console.error('[DragEnd] Reorder API failed:', err);
     }
   };
 
@@ -273,7 +344,8 @@ function App() {
     <div className="app-container">
       {/* Header */}
       <header className="app-header">
-        <h1 className="app-title">
+        <div className="header-inner">
+          <h1 className="app-title">
           <svg className="openclaw-logo" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" width="32" height="32">
             <defs>
               <linearGradient id="lobster-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -343,9 +415,22 @@ function App() {
               <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
             </svg>
           )}
-        </button>
+          </button>
+          <button 
+            className="logout-btn"
+            onClick={handleLogout}
+            aria-label="Logout"
+            title="退出登录"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+          </button>
         </div>
-      </header>
+      </div>
+    </header>
 
       {/* Main Content */}
       <main className="kanban-board">
@@ -431,6 +516,23 @@ function App() {
         </div>
       )}
     </div>
+  );
+}
+
+// 主 App 组件：路由配置
+function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route 
+        path="/" 
+        element={
+          <PrivateRoute>
+            <KanbanBoard />
+          </PrivateRoute>
+        } 
+      />
+    </Routes>
   );
 }
 
